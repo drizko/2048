@@ -1,15 +1,44 @@
-(function(){
+(function () {
     'use strict';
 
-    var Game = function () {
-        this.board = [
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ];
-        this.generateRandom();
-        this.generateRandom();
+    var Game = function (colLength, rowLength) {
+        this.board = this.createGame(colLength, rowLength);
+        this.rowLength = rowLength;
+        this.colLength = colLength;
+        this.moveablesLeft = [];
+        this.moveablesRight = [];
+        this.moveablesUp = [];
+        this.moveablesDown = [];
+    };
+
+    Game.prototype.start = function () {
+        var self = this;
+
+        self.generateRandom();
+        self.generateRandom();
+        self.generateMoveables();
+    };
+
+    Game.prototype.generateMoveables = function () {
+        var self = this;
+
+        self.moveablesLeft = getMoveablesLeft(self.board);
+        self.moveablesRight = getMoveablesRight(self.board);
+        self.moveablesUp = getMoveablesUp(self.board);
+        self.moveablesDown = getMoveablesDown(self.board);
+    };
+
+    Game.prototype.createGame = function (colLength, rowLength) {
+        var matrix = [];
+
+        for (var i = 0; i < rowLength; i++) {
+            matrix.push([]);
+            for (var k = 0; k < colLength; k++) {
+                matrix[i].push(0);
+            }
+        }
+
+        return matrix;
     };
 
     Game.prototype.toString = function () {
@@ -33,65 +62,90 @@
     };
 
     Game.prototype.moveLeft = function () {
+        var self = this;
         var newBoard = [];
 
-        this.board.forEach(function (row) {
+        if (self.moveablesLeft.length === 0) {
+            return;
+        }
+
+        self.board.forEach(function (row) {
             row = removeZeroes(row);
             row = squishRowLeft(row);
-            row = appendZeroes(row);
+            row = appendZeroes(row, self.colLength);
 
             newBoard.push(row);
         });
 
-        this.board = newBoard;
-        this.generateRandom();
+
+        self.board = newBoard;
+        self.generateRandom();
+        self.generateMoveables();
     };
 
     Game.prototype.moveRight = function () {
+        var self = this;
         var newBoard = [];
+
+        if (self.moveablesRight.length === 0) {
+            return;
+        }
 
         this.board.forEach(function (row) {
             row = removeZeroes(row);
             row = squishRowRight(row);
-            row = prependZeroes(row);
+            row = prependZeroes(row, self.colLength);
 
             newBoard.push(row);
         });
 
-        this.board = newBoard;
-        this.generateRandom();
+        self.board = newBoard;
+        self.generateRandom();
+        self.generateMoveables();
     };
 
     Game.prototype.moveUp = function () {
+        var self = this;
         var newBoard = [];
-        var rotated = rotateMatrixCounterClockwise(this.board);
+        var rotated = transpose(self.board, self.rowLength, self.colLength);
+
+        if (self.moveablesUp.length === 0) {
+            return;
+        }
 
         rotated.forEach(function (row) {
             row = removeZeroes(row);
             row = squishRowLeft(row);
-            row = appendZeroes(row);
+            row = appendZeroes(row, self.rowLength);
 
             newBoard.push(row);
         });
 
-        this.board = rotateMatrixClockwise(newBoard);
-        this.generateRandom();
+        self.board = transpose(newBoard);
+        self.generateRandom();
+        self.generateMoveables();
     };
 
     Game.prototype.moveDown = function () {
+        var self = this;
         var newBoard = [];
-        var rotated = rotateMatrixClockwise(this.board);
+        var rotated = transpose(self.board);
+
+        if (self.moveablesDown.length === 0) {
+            return;
+        }
 
         rotated.forEach(function (row) {
             row = removeZeroes(row);
-            row = squishRowLeft(row);
-            row = appendZeroes(row);
+            row = squishRowRight(row);
+            row = prependZeroes(row, self.rowLength);
 
             newBoard.push(row);
         });
 
-        this.board = rotateMatrixCounterClockwise(newBoard);
-        this.generateRandom();
+        self.board = transpose(newBoard);
+        self.generateRandom();
+        self.generateMoveables();
     };
 
 
@@ -102,7 +156,7 @@
     /////////////////////////////
 
     function removeZeroes (row) {
-        return row.filter(function(item){
+        return row.filter(function (item) {
             return item !== 0;
         });
     }
@@ -137,52 +191,36 @@
         return result;
     }
 
-    function prependZeroes (row) {
+    function prependZeroes (row, padding) {
         var result = row.slice();
 
-        while (result.length < 4) {
+        while (result.length < padding) {
             result.unshift(0);
         }
 
         return result;
     }
 
-    function appendZeroes (row) {
+    function appendZeroes (row, padding) {
         var result = row.slice();
 
-        while (result.length < 4) {
+        while (result.length < padding) {
             result.push(0);
         }
 
         return result;
     }
 
-    function rotateMatrixCounterClockwise (matrix) {
-        var result = [];
+    function transpose (array, arrayWidth, arrayHeight) {
+        var newArray = [];
 
-        for (var i = matrix.length - 1; i >= 0; i = i - 1) {
-            var row = [];
-            for (var j = 0; j < matrix[i].length; j = j + 1) {
-                row.push(matrix[j][i]);
+        for (var i = 0; i < array[0].length; i++) {
+            newArray[i] = [];
+            for (var j = 0; j < array.length; j++) {
+                newArray[i][j] = array[j][i];
             }
-            result.push(row);
         }
-
-        return result;
-    }
-
-    function rotateMatrixClockwise (matrix) {
-        var result = [];
-
-        for (var i = 0; i < matrix.length; i = i + 1) {
-            var row = [];
-            for (var j = matrix[i].length - 1; j >= 0; j = j - 1) {
-                row.push(matrix[j][i]);
-            }
-            result.push(row);
-        }
-
-        return result;
+        return newArray;
     }
 
     function findZeroes (matrix) {
@@ -200,9 +238,75 @@
     }
 
     function randomCoordinate (array) {
-        var index = Math.floor(Math.random()*array.length);
+        var index = Math.floor(Math.random() * array.length);
 
         return array[index];
+    }
+
+    function getMoveablesRight (matrix) {
+        var result = [];
+
+        matrix.forEach(function (row, i) {
+            row.forEach(function (val, j) {
+                if (isMoveable(val, row[j + 1])) {
+                    result.push([i, j]);
+                }
+            });
+        });
+
+        return result;
+    }
+
+    function getMoveablesLeft (matrix) {
+        var result = [];
+
+        matrix.forEach(function (row, i) {
+            row.forEach(function (val, j) {
+                if (isMoveable(val, row[j - 1])) {
+                    result.push([i, j]);
+                }
+            });
+        });
+
+        return result;
+    }
+
+    function getMoveablesUp (matrix) {
+        var result = [];
+
+        matrix.forEach(function (row, i) {
+            row.forEach(function (val, j) {
+                if (matrix[i - 1] !== undefined && isMoveable(val, matrix[i - 1][j])) {
+                    result.push([i, j]);
+                }
+            });
+        });
+
+        return result;
+    }
+
+    function getMoveablesDown (matrix) {
+        var result = [];
+
+        matrix.forEach(function (row, i) {
+            row.forEach(function (val, j) {
+                if (matrix[i + 1] !== undefined && isMoveable(val, matrix[i + 1][j])) {
+                    result.push([i, j]);
+                }
+            });
+        });
+
+        return result;
+    }
+
+    function isMoveable (first, second) {
+        if (first !== 0 && second !== undefined) {
+            if (first === second || second === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     window.Game = Game;
